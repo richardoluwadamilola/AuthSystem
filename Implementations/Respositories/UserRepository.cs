@@ -7,22 +7,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AuthSystem.Implementations.Respositories
 {
-    public class UserRepository : IUserRepository
+    public class UserRepository(ApplicationDBContext context) : IUserRepository
     {
-        private readonly ApplicationDBContext _context;
-
-        public UserRepository(ApplicationDBContext context)
-        {
-            _context = context;
-        }
         public ServiceResponse<string> CreateUser(Users user)
         {
             var response = new ServiceResponse<string>();
 
             try
             {
-                _context.Users.Add(user);
-                _context.SaveChanges();
+                context.Users.Add(user);
+                context.SaveChanges();
                 response.Data = "User created successfully";
                 response.HasError = false;
                 response.Message = "User created successfully";
@@ -39,13 +33,13 @@ namespace AuthSystem.Implementations.Respositories
 
         public List<UserDTO> GetAllUsers()
         {
-            return _context.Users.Select(u => new UserDTO
+            return [.. context.Users.Select(u => new UserDTO
             {
                 Id = u.Id,
                 Username = u.Username,
                 Email = u.Email,
                 CreatedAt = u.CreatedAt
-            }).ToList();
+            })];
         }
 
         public ServiceResponse<UserDTO> GetUserByEmail(string email)
@@ -54,7 +48,7 @@ namespace AuthSystem.Implementations.Respositories
 
             try
             {
-                var user = _context.Users.FirstOrDefault(u => u.Email == email);
+                var user = context.Users.FirstOrDefault(u => u.Email == email);
                 if (user != null)
                 {
                     response.Data = new UserDTO
@@ -91,7 +85,7 @@ namespace AuthSystem.Implementations.Respositories
 
             try             
             {
-                var user = _context.Users.FirstOrDefault(u => u.Username == username);
+                var user = context.Users.FirstOrDefault(u => u.Username == username);
                 if (user != null)
                 {
                     response.Data = new UserDTO
@@ -127,7 +121,7 @@ namespace AuthSystem.Implementations.Respositories
 
             try
             {
-                var user = _context.Users.AsNoTracking().FirstOrDefault(u => u.Email == email);
+                var user = context.Users.AsNoTracking().FirstOrDefault(u => u.Email == email);
                 if (user != null)
                 {
                     response.Data = user;
@@ -157,7 +151,7 @@ namespace AuthSystem.Implementations.Respositories
 
             try
             {
-                var user = _context.Users.AsNoTracking().FirstOrDefault(u => u.Username == username);
+                var user = context.Users.AsNoTracking().FirstOrDefault(u => u.Username == username);
                 if (user != null)
                 {
                     response.Data = user;

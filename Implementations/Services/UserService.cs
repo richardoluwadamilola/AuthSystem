@@ -3,30 +3,18 @@ using AuthSystem.Abstractions.IServices;
 using AuthSystem.Models;
 using AuthSystem.Models.DTOS;
 using AuthSystem.Models.ResponseModels;
-using AuthSystem.Utilities.Token;
 
 namespace AuthSystem.Implementations.Services
 {
-    public class UserService : IUserService
+    public class UserService(IUserRepository userRepository, ITokenService tokenService) : IUserService
     {
-        private readonly IUserRepository _userRepository;
-        private readonly IConfiguration _configuration;
-        private readonly JwtSettings _jwtSettings;
-        public UserService(IUserRepository userRepository, IConfiguration configuration)
-        {
-            _userRepository = userRepository;
-            _configuration = configuration;
-            _jwtSettings = new JwtSettings();
-            _configuration.GetSection("JwtSettings").Bind(_jwtSettings);
-
-        }
         public ServiceResponse<AuthResponseDTO> Login(string username, string password)
         {
             var response = new ServiceResponse<AuthResponseDTO>();
 
             try
             {
-                var userResult = _userRepository.GetUserEntityByUsername(username);
+                var userResult = userRepository.GetUserEntityByUsername(username);
                 if (userResult == null || userResult.Data == null)
                 {
                     response.Data = null;
@@ -46,10 +34,9 @@ namespace AuthSystem.Implementations.Services
                     return response;
                 }
                 
-                var token = TokenUtil.GetToken(user.Username, user.Email);
                 response.Data = new AuthResponseDTO
                 {
-                    Token = token,
+                    Token = tokenService.GenerateToken(user.Username, user.Email),
                     User = new UserDTO 
                     { 
                         Id = user.Id, 
@@ -77,7 +64,7 @@ namespace AuthSystem.Implementations.Services
 
             try
             {
-                var existingUserByUsername = _userRepository.GetUserEntityByUsername(username);
+                var existingUserByUsername = userRepository.GetUserByUsername(username);
                 if (existingUserByUsername != null && existingUserByUsername.Data != null)
                 {
                     response.Data = null;
@@ -85,7 +72,7 @@ namespace AuthSystem.Implementations.Services
                     response.Message = "Username already exists";
                     return response;
                 }
-                var existingUserByEmail = _userRepository.GetUserByEmail(email);
+                var existingUserByEmail = userRepository.GetUserByEmail(email);
                 if (existingUserByEmail != null && existingUserByEmail.Data != null)
                 {
                     response.Data = null;
@@ -99,9 +86,9 @@ namespace AuthSystem.Implementations.Services
                     Username = username,
                     Email = email,
                     PasswordHash = hashedPassword,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.Now
                 };
-                var createResult = _userRepository.CreateUser(newUser);
+                var createResult = userRepository.CreateUser(newUser);
                 if (createResult.HasError)
                 {
                     response.Data = null;
@@ -109,10 +96,10 @@ namespace AuthSystem.Implementations.Services
                     response.Message = createResult.Message;
                     return response;
                 }
-                var token = TokenUtil.GetToken(username, email);
+                
                 response.Data = new AuthResponseDTO
                 {
-                    Token = token,
+                    Token = tokenService.GenerateToken(username,email),
                     User = new UserDTO
                     {
                         Username = username,

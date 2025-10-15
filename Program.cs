@@ -5,7 +5,7 @@ using AuthSystem.Data;
 using AuthSystem.Implementations.Respositories;
 using AuthSystem.Implementations.Services;
 using AuthSystem.Models;
-using AuthSystem.Utilities.Token;
+//using AuthSystem.Utilities.Token;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,6 +22,9 @@ builder.Services.AddDbContext<ApplicationDBContext>(options =>
 
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<ITokenService, TokenService>();
+builder.Services.AddScoped<ITokenAccessor, TokenAccessor>();
+builder.Services.AddHttpContextAccessor();
 
 var jwtSettingsSection = builder.Configuration.GetSection("JwtSettings");
 builder.Services.Configure<JwtSettings>(jwtSettingsSection);
@@ -45,13 +48,9 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-builder.Services.AddHttpContextAccessor();
-
 
 var app = builder.Build();
 
-var httpContextAccessor = app.Services.GetRequiredService<IHttpContextAccessor>();
-TokenUtil.Configure(jwtSettings, httpContextAccessor);
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

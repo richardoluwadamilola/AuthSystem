@@ -3,12 +3,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AuthSystem.Data
 {
-    public class ApplicationDBContext : DbContext
+    public class ApplicationDBContext(DbContextOptions<ApplicationDBContext> options) : DbContext(options)
     {
-        public ApplicationDBContext(DbContextOptions<ApplicationDBContext> options) : base(options)
-        {
-        }
-        
         public DbSet<Users> Users { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
