@@ -7,6 +7,7 @@ namespace AuthSystem.Abstractions.IServices
     {
       ServiceResponse<AuthResponseDTO> Register(string username, string email, string password);
       ServiceResponse<AuthResponseDTO> Login(string username, string password);
+      ServiceResponse<UserDTO> GetUserDetails();
 
     }
 }

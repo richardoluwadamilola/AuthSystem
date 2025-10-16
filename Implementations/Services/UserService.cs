@@ -6,8 +6,46 @@ using AuthSystem.Models.ResponseModels;
 
 namespace AuthSystem.Implementations.Services
 {
-    public class UserService(IUserRepository userRepository, ITokenService tokenService) : IUserService
+    public class UserService(IUserRepository userRepository, ITokenService tokenService, ITokenAccessor tokenAccessor) : IUserService
     {
+        public ServiceResponse<UserDTO> GetUserDetails()
+        {
+            var response = new ServiceResponse<UserDTO>();
+
+            try
+            {
+               var username = tokenAccessor.GetAuthenticatedTokenUsername();
+                if (string.IsNullOrEmpty(username))
+                 {
+                      response.Data = null;
+                      response.HasError = true;
+                      response.Message = "No authenticated user found";
+                      return response;
+                 }
+    
+                 var userResult = userRepository.GetUserByUsername(username);
+                 if (userResult == null || userResult.Data == null)
+                 {
+                      response.Data = null;
+                      response.HasError = true;
+                      response.Message = "User not found";
+                      return response;
+                 }
+    
+                 response.Data = userResult.Data;
+                 response.HasError = false;
+                 response.Message = "User details retrieved successfully";
+            }
+            catch (Exception ex)
+            {
+                response.Data = null;
+                response.HasError = true;
+                response.Message = $"Error retrieving user details: {ex.Message}";
+            }
+
+            return response;
+        }
+
         public ServiceResponse<AuthResponseDTO> Login(string username, string password)
         {
             var response = new ServiceResponse<AuthResponseDTO>();
@@ -33,15 +71,15 @@ namespace AuthSystem.Implementations.Services
                     response.Message = "Invalid password";
                     return response;
                 }
-                
+
                 response.Data = new AuthResponseDTO
                 {
                     Token = tokenService.GenerateToken(user.Username, user.Email),
-                    User = new UserDTO 
-                    { 
-                        Id = user.Id, 
-                        Username = user.Username, 
-                        Email = user.Email, 
+                    User = new UserDTO
+                    {
+                        Id = user.Id,
+                        Username = user.Username,
+                        Email = user.Email,
                         CreatedAt = user.CreatedAt
                     }
                 };
@@ -96,10 +134,10 @@ namespace AuthSystem.Implementations.Services
                     response.Message = createResult.Message;
                     return response;
                 }
-                
+
                 response.Data = new AuthResponseDTO
                 {
-                    Token = tokenService.GenerateToken(username,email),
+                    Token = tokenService.GenerateToken(username, email),
                     User = new UserDTO
                     {
                         Username = username,
