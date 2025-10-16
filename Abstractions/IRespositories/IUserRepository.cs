@@ -8,12 +8,12 @@ namespace AuthSystem.Abstractions.IRespositories
 {
     public interface IUserRepository
     {
-        ServiceResponse<UserDTO> GetUserByUsername(string username);
-        ServiceResponse<UserDTO> GetUserByEmail(string email);
+        UserDTO? GetUserByUsername(string username);
+        UserDTO? GetUserByEmail(string email);
         List<UserDTO> GetAllUsers();
-        ServiceResponse<string> CreateUser(Users user);
-        ServiceResponse<Users> GetUserEntityByUsername(string username);
-        ServiceResponse<Users> GetUserEntityByEmail(string email);
+        Users CreateUser(Users user);
+        Users? GetUserEntityByUsername(string username);
+        Users? GetUserEntityByEmail(string email);
     }
 
     

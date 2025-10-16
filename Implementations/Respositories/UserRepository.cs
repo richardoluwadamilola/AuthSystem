@@ -9,26 +9,11 @@ namespace AuthSystem.Implementations.Respositories
 {
     public class UserRepository(ApplicationDBContext context) : IUserRepository
     {
-        public ServiceResponse<string> CreateUser(Users user)
+        public Users CreateUser(Users user)
         {
-            var response = new ServiceResponse<string>();
-
-            try
-            {
-                context.Users.Add(user);
-                context.SaveChanges();
-                response.Data = "User created successfully";
-                response.HasError = false;
-                response.Message = "User created successfully";
-            }
-            catch (Exception ex)
-            {
-                response.Data = null;
-                response.HasError = true;
-                response.Message = $"Error creating user: {ex.Message}";
-            }
-
-            return response;
+            context.Users.Add(user);
+            context.SaveChanges();
+            return user;
         }
 
         public List<UserDTO> GetAllUsers()
@@ -42,137 +27,36 @@ namespace AuthSystem.Implementations.Respositories
             })];
         }
 
-        public ServiceResponse<UserDTO> GetUserByEmail(string email)
+        public UserDTO? GetUserByEmail(string email)
         {
-            var response = new ServiceResponse<UserDTO>();
-
-            try
+            return context.Users.Where(u => u.Email == email).Select(u => new UserDTO
             {
-                var user = context.Users.FirstOrDefault(u => u.Email == email);
-                if (user != null)
-                {
-                    response.Data = new UserDTO
-                    {
-                        Id = user.Id,
-                        Username = user.Username,
-                        Email = user.Email,
-                        CreatedAt = user.CreatedAt
-                    };
-                    response.HasError = false;
-                    response.Message = "User found";
-                }
-                else
-                {
-                    response.Data = null;
-                    response.HasError = true;
-                    response.Message = "User not found";
-                }
-            }
-            catch (Exception ex)
-            {
-                response.Data = null;
-                response.HasError = true;
-                response.Message = $"Error retrieving user: {ex.Message}";
-            }
-
-            return response;
-
+                Id = u.Id,
+                Username = u.Username,
+                Email = u.Email,
+                CreatedAt = u.CreatedAt
+            }).FirstOrDefault();
         }
 
-        public ServiceResponse<UserDTO> GetUserByUsername(string username)
+        public UserDTO? GetUserByUsername(string username)
         {
-            var response = new ServiceResponse<UserDTO>();
-
-            try             
+            return context.Users.Where(u => u.Username == username).Select(u => new UserDTO
             {
-                var user = context.Users.FirstOrDefault(u => u.Username == username);
-                if (user != null)
-                {
-                    response.Data = new UserDTO
-                    {
-                        Id = user.Id,
-                        Username = user.Username,
-                        Email = user.Email,
-                        CreatedAt = user.CreatedAt
-                    };
-                    response.HasError = false;
-                    response.Message = "User found";
-                }
-                else
-                {
-                    response.Data = null;
-                    response.HasError = true;
-                    response.Message = "User not found";
-                }
-            }
-            catch (Exception ex)
-            {
-                response.Data = null;
-                response.HasError = true;
-                response.Message = $"Error retrieving user: {ex.Message}";
-            }
-
-            return response;
+                Id = u.Id,
+                Username = u.Username,
+                Email = u.Email,
+                CreatedAt = u.CreatedAt
+            }).FirstOrDefault();
         }
 
-        public ServiceResponse<Users> GetUserEntityByEmail(string email)
+        public Users? GetUserEntityByEmail(string email)
         {
-            var response = new ServiceResponse<Users>();
-
-            try
-            {
-                var user = context.Users.AsNoTracking().FirstOrDefault(u => u.Email == email);
-                if (user != null)
-                {
-                    response.Data = user;
-                    response.HasError = false;
-                    response.Message = "User found";
-                }
-                else
-                {
-                    response.Data = null;
-                    response.HasError = true;
-                    response.Message = "User not found";
-                }
-            }
-            catch (Exception ex)
-            {
-                response.Data = null;
-                response.HasError = true;
-                response.Message = $"Error retrieving user: {ex.Message}";
-            }
-
-            return response;
+            return context.Users.AsNoTracking().FirstOrDefault(u => u.Email == email);
         }
 
-        public ServiceResponse<Users> GetUserEntityByUsername(string username)
+        public Users? GetUserEntityByUsername(string username)
         {
-            var response = new ServiceResponse<Users>();
-
-            try
-            {
-                var user = context.Users.AsNoTracking().FirstOrDefault(u => u.Username == username);
-                if (user != null)
-                {
-                    response.Data = user;
-                    response.HasError = false;
-                    response.Message = "User found";
-                }
-                else
-                {
-                    response.Data = null;
-                    response.HasError = true;
-                    response.Message = "User not found";
-                }
-            }
-            catch (Exception ex)
-            {
-                response.Data = null;
-                response.HasError = true;
-                response.Message = $"Error retrieving user: {ex.Message}";
-            }
-
-            return response;
+            return context.Users.AsNoTracking().FirstOrDefault(u => u.Username == username);
         }
     }
 }

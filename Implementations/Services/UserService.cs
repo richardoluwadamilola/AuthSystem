@@ -10,153 +10,142 @@ namespace AuthSystem.Implementations.Services
     {
         public ServiceResponse<UserDTO> GetUserDetails()
         {
-            var response = new ServiceResponse<UserDTO>();
-
-            try
+            var userName = tokenAccessor.GetAuthenticatedTokenUsername();
+            if (string.IsNullOrEmpty(userName))
             {
-               var username = tokenAccessor.GetAuthenticatedTokenUsername();
-                if (string.IsNullOrEmpty(username))
-                 {
-                      response.Data = null;
-                      response.HasError = true;
-                      response.Message = "No authenticated user found";
-                      return response;
-                 }
-    
-                 var userResult = userRepository.GetUserByUsername(username);
-                 if (userResult == null || userResult.Data == null)
-                 {
-                      response.Data = null;
-                      response.HasError = true;
-                      response.Message = "User not found";
-                      return response;
-                 }
-    
-                 response.Data = userResult.Data;
-                 response.HasError = false;
-                 response.Message = "User details retrieved successfully";
-            }
-            catch (Exception ex)
-            {
-                response.Data = null;
-                response.HasError = true;
-                response.Message = $"Error retrieving user details: {ex.Message}";
+                return new ServiceResponse<UserDTO>
+                {
+                    Data = null,
+                    HasError = true,
+                    Message = "Invalid token or user not found"
+                };
             }
 
-            return response;
+            var user = userRepository.GetUserByUsername(userName);
+            if (user == null)
+            {
+                return new ServiceResponse<UserDTO>
+                {
+                    Data = null,
+                    HasError = true,
+                    Message = "User not found"
+                };
+            }
+
+            return new ServiceResponse<UserDTO>
+            {
+                Data = user,
+                HasError = false,
+                Message = "User details retrieved successfully",
+                HttpStatusCode = System.Net.HttpStatusCode.OK
+            };
         }
 
         public ServiceResponse<AuthResponseDTO> Login(string username, string password)
         {
-            var response = new ServiceResponse<AuthResponseDTO>();
-
-            try
+            var userEntity = userRepository.GetUserEntityByUsername(username);
+            if (userEntity == null)
             {
-                var userResult = userRepository.GetUserEntityByUsername(username);
-                if (userResult == null || userResult.Data == null)
+                return new ServiceResponse<AuthResponseDTO>
                 {
-                    response.Data = null;
-                    response.HasError = true;
-                    response.Message = "User not found";
-                    return response;
-                }
-
-                var user = userResult.Data;
-
-                bool passwordValid = BCrypt.Net.BCrypt.Verify(password, user.PasswordHash);
-                if (!passwordValid)
-                {
-                    response.Data = null;
-                    response.HasError = true;
-                    response.Message = "Invalid password";
-                    return response;
-                }
-
-                response.Data = new AuthResponseDTO
-                {
-                    Token = tokenService.GenerateToken(user.Username, user.Email),
-                    User = new UserDTO
-                    {
-                        Id = user.Id,
-                        Username = user.Username,
-                        Email = user.Email,
-                        CreatedAt = user.CreatedAt
-                    }
+                    Data = null,
+                    HasError = true,
+                    Message = "User not found",
+                    HttpStatusCode = System.Net.HttpStatusCode.NotFound
                 };
-                response.HasError = false;
-                response.Message = "Login successful";
-            }
-            catch (Exception ex)
-            {
-                response.Data = null;
-                response.HasError = true;
-                response.Message = $"Error during login: {ex.Message}";
             }
 
-            return response;
+            bool isPasswordValid = BCrypt.Net.BCrypt.Verify(password, userEntity.PasswordHash);
+            if (!isPasswordValid)
+            {
+                return new ServiceResponse<AuthResponseDTO>
+                {
+                    Data = null,
+                    HasError = true,
+                    Message = "Invalid password",
+                    HttpStatusCode = System.Net.HttpStatusCode.BadRequest
+                };
+            }
+
+            var token = tokenService.GenerateToken(userEntity.Username, userEntity.Email);
+            var authResponse = new AuthResponseDTO
+            {
+                Token = token,
+                User = new UserDTO
+                {
+                    Id = userEntity.Id,
+                    Username = userEntity.Username,
+                    Email = userEntity.Email,
+                    CreatedAt = userEntity.CreatedAt
+                }
+            };
+            return new ServiceResponse<AuthResponseDTO>
+            {
+                Data = authResponse,
+                HasError = false,
+                Message = "Login successful",
+                HttpStatusCode = System.Net.HttpStatusCode.OK
+            };
+
         }
 
         public ServiceResponse<AuthResponseDTO> Register(string username, string email, string password)
         {
-            var response = new ServiceResponse<AuthResponseDTO>();
-
-            try
+            var exisingUserByUsername = userRepository.GetUserByUsername(username);
+            if (exisingUserByUsername != null)
             {
-                var existingUserByUsername = userRepository.GetUserByUsername(username);
-                if (existingUserByUsername != null && existingUserByUsername.Data != null)
+                return new ServiceResponse<AuthResponseDTO>
                 {
-                    response.Data = null;
-                    response.HasError = true;
-                    response.Message = "Username already exists";
-                    return response;
-                }
-                var existingUserByEmail = userRepository.GetUserByEmail(email);
-                if (existingUserByEmail != null && existingUserByEmail.Data != null)
-                {
-                    response.Data = null;
-                    response.HasError = true;
-                    response.Message = "Email already exists";
-                    return response;
-                }
-                var hashedPassword = BCrypt.Net.BCrypt.HashPassword(password);
-                var newUser = new Users
-                {
-                    Username = username,
-                    Email = email,
-                    PasswordHash = hashedPassword,
-                    CreatedAt = DateTime.Now
+                    Data = null,
+                    HasError = true,
+                    Message = "Username already taken",
+                    HttpStatusCode = System.Net.HttpStatusCode.BadRequest
                 };
-                var createResult = userRepository.CreateUser(newUser);
-                if (createResult.HasError)
-                {
-                    response.Data = null;
-                    response.HasError = true;
-                    response.Message = createResult.Message;
-                    return response;
-                }
-
-                response.Data = new AuthResponseDTO
-                {
-                    Token = tokenService.GenerateToken(username, email),
-                    User = new UserDTO
-                    {
-                        Username = username,
-                        Email = email,
-                        CreatedAt = newUser.CreatedAt
-                    }
-                };
-                response.HasError = false;
-                response.Message = "Registration successful";
-            }
-            catch (Exception ex)
-            {
-                response.Data = null;
-                response.HasError = true;
-                response.Message = $"Error during registration: {ex.Message}";
             }
 
-            return response;
+            var existingUserByEmail = userRepository.GetUserByEmail(email);
+            if (existingUserByEmail != null)
+            {
+                return new ServiceResponse<AuthResponseDTO>
+                {
+                    Data = null,
+                    HasError = true,
+                    Message = "Email already registered",
+                    HttpStatusCode = System.Net.HttpStatusCode.BadRequest
+                };
+            }
 
+            var passwordHash = BCrypt.Net.BCrypt.HashPassword(password);
+            var newUser = new Users
+            {
+                Username = username,
+                Email = email,
+                PasswordHash = passwordHash,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var createdUser = userRepository.CreateUser(newUser);
+
+            var token = tokenService.GenerateToken(newUser.Username, newUser.Email);
+
+            var authResponse = new AuthResponseDTO
+            {
+                Token = token,
+                User = new UserDTO
+                {
+                    Id = createdUser.Id,
+                    Username = newUser.Username,
+                    Email = newUser.Email,
+                    CreatedAt = newUser.CreatedAt
+                }
+            };
+            return new ServiceResponse<AuthResponseDTO>
+            {
+                Data = authResponse,
+                HasError = false,
+                Message = "Registration successful",
+                HttpStatusCode = System.Net.HttpStatusCode.OK
+            };
         }
     }
 }
